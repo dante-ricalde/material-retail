@@ -31,7 +31,7 @@ ENV PORT=8080
 ENV API_TARGET=http://material-retail-dante-api.internal:4000
 
 COPY --from=build /repo/apps/web/dist ./dist
-COPY web-server.mjs ./web-server.mjs
+COPY apps/web/web-server.mjs ./web-server.mjs
 
 EXPOSE 8080
 CMD ["node", "web-server.mjs"]

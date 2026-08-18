@@ -5,7 +5,7 @@ app = "material-retail-dante-web"
 primary_region = "iad"
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = "apps/web/Dockerfile"
 
 [env]
   NODE_ENV = "production"
