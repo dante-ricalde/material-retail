@@ -1,24 +1,34 @@
 # Multi-stage build for the NestJS API.
-# Stage 1: install full deps (incl. dev) and compile TypeScript.
+# Build context is the monorepo root (so package-lock.json + hoisted node_modules
+# are available). The api build does NOT need apps/web — see .dockerignore.
+#
+# Stage 1: install full deps (incl. dev), compile TypeScript.
 # Stage 2: ship a slim runtime image with only prod deps + compiled JS.
 
 FROM node:20-bookworm-slim AS build
-WORKDIR /app
+WORKDIR /repo
 
-# Install build deps needed by better-sqlite3 (python3 + make + g++).
-# Bookworm already has build-essential; slim doesn't. Keep the toolchain small.
+# Build toolchain for better-sqlite3's native module.
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 build-essential ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
+# Workspace root + lockfile + api sources.
 COPY package.json package-lock.json ./
+COPY apps/api/package.json ./apps/api/package.json
+COPY apps/api/tsconfig.json ./apps/api/tsconfig.json
+COPY apps/api/nest-cli.json ./apps/api/nest-cli.json
+COPY apps/api/src ./apps/api/src
+
+# Install all workspace deps (hoisted to /repo/node_modules).
 RUN npm ci
 
-COPY tsconfig.json nest-cli.json ./
-COPY src ./src
+# Compile only the api workspace.
+WORKDIR /repo/apps/api
 RUN npm run build
 
-# Prune dev deps so the runtime image only carries what's needed.
+# Drop dev deps for the runtime image.
+WORKDIR /repo
 RUN npm prune --omit=dev
 
 # --------------------------------------------------------------------
@@ -26,24 +36,20 @@ RUN npm prune --omit=dev
 FROM node:20-bookworm-slim AS runtime
 WORKDIR /app
 
-# libc6 compat for the prebuilt better-sqlite3 binary; ca-certificates for outbound SMTP TLS.
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 ENV PORT=4000
-# SQLite database + email outbox live on a Fly persistent volume mounted at /data.
 ENV DATABASE_DIR=/data
 ENV ALERT_OUTBOX_DIR=/data/outbox
 
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/package.json ./package.json
+# Copy the workspace's hoisted node_modules + the api dist.
+COPY --from=build /repo/node_modules ./node_modules
+COPY --from=build /repo/apps/api/dist ./dist
+COPY --from=build /repo/apps/api/package.json ./package.json
 
-# Create the data dir so SQLite can open before the volume is mounted on first boot.
-# (The volume mount overlays this on first run, but the path needs to exist for any
-# local fallback or first-boot startup probe.)
 RUN mkdir -p /data/outbox
 
 EXPOSE 4000

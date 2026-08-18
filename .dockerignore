@@ -7,7 +7,11 @@ node_modules
 **/.tsbuildinfo
 **/tsconfig.tsbuildinfo
 
-# Local SQLite + outbox are not needed in the image.
+# Each app's image only needs its own source — exclude the other.
+# (Both Dockerfiles use the monorepo root as build context.)
+# If you flip the context to a single app, remove these.
+
+# Local SQLite + outbox are not needed in any image.
 data/app.db
 data/app.db-journal
 data/app.db-shm
@@ -25,8 +29,3 @@ data/outbox/*.eml
 # Logs
 *.log
 npm-debug.log*
-
-# This file itself shouldn't be in any image context.
-.dockerignore
-Dockerfile
-fly.toml
