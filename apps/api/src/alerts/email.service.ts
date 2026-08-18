@@ -59,8 +59,11 @@ export class EmailService {
     };
   }
 
-  /** Returns absolute path to repo/data/outbox. */
+  /** Returns absolute path to outbox dir. Honors ALERT_OUTBOX_DIR in prod. */
   outboxDir(): string {
+    if (process.env.ALERT_OUTBOX_DIR) {
+      return process.env.ALERT_OUTBOX_DIR;
+    }
     // apps/api/src/alerts → apps/api → apps → repoRoot → data/outbox
     const repoRoot = path.resolve(__dirname, '..', '..', '..', '..');
     return path.join(repoRoot, 'data', 'outbox');

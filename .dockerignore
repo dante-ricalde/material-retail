@@ -1,0 +1,32 @@
+# Don't ship node_modules or build outputs into the Docker context — Docker rebuilds them.
+node_modules
+**/node_modules
+**/dist
+**/.vite
+**/.cache
+**/.tsbuildinfo
+**/tsconfig.tsbuildinfo
+
+# Local SQLite + outbox are not needed in the image.
+data/app.db
+data/app.db-journal
+data/app.db-shm
+data/app.db-wal
+data/outbox/*.eml
+
+# Editor / OS / git
+.DS_Store
+.idea
+.vscode
+.git
+.gitignore
+.github
+
+# Logs
+*.log
+npm-debug.log*
+
+# This file itself shouldn't be in any image context.
+.dockerignore
+Dockerfile
+fly.toml

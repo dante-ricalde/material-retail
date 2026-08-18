@@ -1,0 +1,59 @@
+# Fly.io config for the Material Retail API.
+# App name is intentionally left blank — set via `fly launch --name ...` or edit here
+# before your first `fly deploy`. Fly refuses to deploy without an `app` value.
+
+app = "material-retail-dante-api"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "4000"
+  # Persistent volume path. Both the SQLite file and the email outbox live here.
+  DATABASE_DIR = "/data"
+  ALERT_OUTBOX_DIR = "/data/outbox"
+
+# Mount the persistent volume so SQLite survives restarts and redeploys.
+# Created once with:  fly volumes create data --size 1 --region iad
+[[mounts]]
+  source = "data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  # CORS + body size: the web frontend on Fly will call this over the public
+  # internet, so we expose 4000 directly (not via fly.internal).
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 250
+    soft_limit = 200
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 4000
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 250
+    soft_limit = 200
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "512mb"
+  cpu_type = "shared"

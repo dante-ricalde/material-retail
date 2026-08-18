@@ -25,7 +25,15 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: [
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      // Fly web deploy (https). Add additional origins via WEB_ORIGIN env (comma-separated)
+      // when scaling to multiple regions or preview envs.
+      ...(process.env.WEB_ORIGIN?.split(',').map((s) => s.trim()).filter(Boolean) ?? [
+        'https://material-retail-dante-web.fly.dev',
+      ]),
+    ],
     credentials: true,
   });
 

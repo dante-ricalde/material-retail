@@ -81,8 +81,12 @@ export class DatabaseService {
   private readonly logger = new Logger(DatabaseService.name);
   private conn!: Database.Database;
 
-  /** Resolves to <repo>/data/app.db, creating the directory if missing. */
+  /** Resolves to <repo>/data/app.db in dev, or $DATABASE_DIR/app.db in prod. */
   dbPath(): string {
+    // Honor DATABASE_DIR env override (set in prod Dockerfile / fly.toml).
+    if (process.env.DATABASE_DIR) {
+      return path.join(process.env.DATABASE_DIR, 'app.db');
+    }
     // apps/api/src/database → apps/api → apps → repoRoot → data/app.db
     const repoRoot = path.resolve(__dirname, '..', '..', '..', '..');
     return path.join(repoRoot, 'data', 'app.db');
